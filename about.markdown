@@ -4,15 +4,8 @@ title: About
 permalink: /about/
 ---
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
+## Hey There! 👋🏽
 
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
+I'm a Software Engineer with several years of experience in building enterprise-level Java applications (Spring, Spring Boot, Play Framework). Experience in designing, building, and maintaining scalable, cloud-native applications (Docker, Kubernetes). Proficient in DevOps practices (Prometheus, Grafana), SQL/NoSQL databases, and agile methodologies (SAFe® 6 Scrum Master certified). Spring Certified Professional 2024 [v2]. Enthusiastic about applying AI/ML techniques.
 
-You can find the source code for Jekyll at GitHub:
-[jekyll][jekyll-organization] /
-[jekyll](https://github.com/jekyll/jekyll)
-
-
-[jekyll-organization]: https://github.com/jekyll
+![Alt text](/site/assets/me.jpeg)
