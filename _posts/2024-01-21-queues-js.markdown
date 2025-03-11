@@ -1,0 +1,216 @@
+---
+layout: post
+title:  "Mastering Queues in JavaScript: Array vs. LinkedList"
+date:   2024-01-14 12:27:06 +0100
+categories: queues, javascript
+---
+
+
+### TL;DR 🚀  
+Implementing queues in JavaScript offers multiple paths, primarily using a combination of built-in, higher-level methods like `push()`, `pop()`, `shift()` and `unshift()`. While convenient, you should note that `shift()` and `unshift()` can lead to performance drawbacks for large datasets, as they reindex the entire list, which can have some tangible effects, especially in data-intensive operations. 
+
+### Overview
+
+In computer science, queues are classified as abstract data types **(ADTs)**, distinct from fundamental data structures.
+Unlike concrete data types, which are defined by their specific structure and implementation details, ADTs 
+like queues are characterized by a set of operations and expected behaviors.
+
+A key attribute of queues is their operational order, termed **First In,
+First Out (FIFO)**. This principle dictates that elements are removed 
+from a queue in the same order they were added; the first element added is the first to be removed.
+
+What makes queues particularly adaptable is their implementation flexibility. 
+They can be implemented using various data structures, each offering unique performance attributes. 
+Common structures used include Arrays, LinkedLists, and Stacks. 
+These structures affect how `enqueue` (addition) and `dequeue` (removal) operations are executed. 
+Thus, while a queue is not a data structure in itself, it represents a 
+concept or ADT that can be materialized through multiple data structures in programming.
+
+
+#### Exploring Queue Implementations in JavaScript
+
+We'll delve into different methods for implementing queues in JavaScript, starting with the Array-based approach.
+
+```javascript 
+
+class ArrayQueue {
+    constructor() {
+        this.items = [];
+    }
+
+    // Enqueue: Adds an item to the back of the queue
+    enqueue(item) {
+        this.items.push(item);
+    }
+
+    // Dequeue: Removes an item from the front of the queue
+    dequeue() {
+        if(this.isEmpty()) {
+            return null;
+        }
+        return this.items.shift();
+    }
+
+    // Peek: Returns the front item without removing it
+    peek() {
+        if(this.isEmpty()) {
+            return null;
+        }
+        return this.items[0];
+    }
+
+    // Check if the queue is empty
+    isEmpty() {
+        return this.items.length === 0;
+    }
+
+    // Returns the size of the queue
+    size() {
+        return this.items.length;
+    }
+
+    // Display the queue contents
+    display() {
+        console.log(this.items);
+    }
+}
+
+// Example usage
+const queue = new ArrayQueue();
+queue.enqueue('a');
+queue.enqueue('b');
+queue.enqueue('c');
+queue.display();  // Output: ['a', 'b', 'c']
+console.log(queue.dequeue());  // Output: 'a'
+queue.display();  // Output: ['b', 'c']
+
+```
+In this example, `ArrayQueue` is a simple class that uses an array `(this.items)` to store the queue elements. 
+The `enqueue()` method adds elements to the end of the queue, while the `dequeue()` method removes elements from the front.
+The `peek()` method allows you to look at the front item without removing it, and `isEmpty()` checks if the queue is empty. 
+Finally, `size()` returns the number of elements in the queue, and `display()` is just a utility method for logging the queue's contents to the console.
+
+However, implementing queues using arrays in JavaScript can have several drawbacks including
+ - **Performance Issues with Large Queues:** The primary concern with using arrays for queues in JavaScript is performance, 
+ especially when dealing with large datasets. The `shift()` method, commonly used to remove the first element from the array (dequeue operation), 
+ can be inefficient for large arrays. This is because `shift()` needs to reindex every element in the array after removing the first element, 
+ leading to a time complexity of **O(N)** for each dequeue operation.
+ - **Memory Overhead:** Although JavaScript engines optimize array operations, using arrays for queues can still lead to higher memory overhead.
+  This is because arrays in JavaScript are dynamic and can have elements in non-contiguous memory locations, especially as the array grows or shrinks.
+ - **Undefined Behavior for Sparse Arrays:** If the queue implementation results in a sparse array (an array where not all elements are defined),
+  it can lead to unpredictable behavior and performance issues. This is more of a concern in scenarios where elements are added and removed frequently.
+ - **Limitation in Methods:** Arrays in JavaScript offer methods that can manipulate both ends of the array.
+  While this is generally useful, it can also lead to incorrect use of the queue when methods other than `push()` and `shift()` are used, 
+  potentially breaking the **FIFO** behavior.
+
+So what about using LinkedList? Glad you ask! Let's take a look the implementation of queues using LinkedList. 
+
+First, let's create our Node class 
+
+```javascript 
+class Node {
+ constructor(value) {
+    this.value = value
+    this.next = null 
+  }
+}
+```
+
+Secondly, now when we created our Node class, let's implement our queue. We'll start by creating our Queue class.
+
+```javascript 
+class Queue {
+  constructor() {
+    this.first = null
+    this.last = null
+    this.size = 0
+  }
+}
+```
+
+We created here a Queue class that has three properties. Note that I use the keyword size instead of length. 
+This is optional, but I prefer using size since Arrays have the length property.
+
+Now let's implement the remaining methods. 
+
+```javascript 
+isEmpty() {
+    return !this.size
+}
+enqueue(item) {
+    // Create node
+    const newNode = new Node(item)
+    /**
+     * * If our list is empty than both our 
+     * * first item and last item is going to point the new node. 
+     */
+    if (this.isEmpty()) {
+      this.first = newNode
+      this.last = newNode
+    }
+    else {
+      this.last.next = newNode
+      this.last = newNode
+    }
+    this.size++
+    return this 
+}
+
+dequeue() { 
+      //* if our queue is empty we return null 
+      if (this.isEmpty()) return null
+      const itemToBeRemoved = this.first    
+      /**
+       * * if both our first and last node are pointing the same item
+       * * we dequeued our last node. 
+       */
+      if (this.first === this.last) {
+        this.last = null
+      }
+      this.first = this.first.next
+      this.size--
+      return itemToBeRemoved
+}  
+
+peek() {
+  return this.first
+} 
+   
+```
+Implementing queues using LinkedLists in JavaScript has its own set of pros and cons compared to using arrays. Here's a breakdown:
+
+#### Pros:
+
+- **Constant Time Operations:** The primary advantage of using _LinkedList_ for queues is the efficiency of operations. 
+Both enqueue (adding to the end) and dequeue (removing from the front) operations can be performed in constant time, **O(1)**. 
+This is because these operations don't require shifting elements as in an array.
+
+- **Dynamic Size:** Linked lists are inherently dynamic, meaning they can grow or shrink in size as needed without the need for
+ reallocating or reorganizing the entire data structure.
+
+- **Memory Efficiency:** In a linked list, each element (node) contains only its data and a reference to the next node. 
+ This can be more memory-efficient compared to arrays, especially when dealing with large numbers of elements.
+
+- **Flexibility:** Linked lists provide the flexibility to easily implement more complex types of queues, 
+  such as a priority queue or a double-ended queue (deque), without significant changes to the underlying structure.
+
+#### Cons:
+
+- **Higher Memory Overhead per Element:** While _Linkedlist_ can be more memory-efficient for large datasets, 
+  each element in a linkedlist typically requires more memory than an array because of the additional pointers (references to next/previous elements).
+
+- **Slower Element Access:** Accessing elements by index in a linkedlist is less efficient compared to arrays. 
+  In a queue implementation, this isn't usually a problem since we're typically only concerned with the front and back of the queue. However, if random access is required, linked lists perform poorly.
+
+- **Complexity of Implementation:** Implementing a queue with a linkedlist requires more code and understanding
+  of pointers and node connections compared to the straightforward nature of array-based implementations.
+
+- **Potential for Bugs:** The manual handling of node pointers and the dynamic nature of 
+  the linkedlist increase the potential for bugs, such as memory leaks or incorrect pointer manipulation.
+
+
+In summary, Linkedlists offer efficient queue operations and flexibility at the cost of slightly higher per-element
+memory overhead and more complex implementation. For scenarios where `enqueue` and `dequeue` operations are frequent and performance-critical, 
+and where the simplicity of arrays doesn't suffice, linked lists are an excellent choice.
+
+Hope you find this post useful, any feedback and discussion are welcome. By3
