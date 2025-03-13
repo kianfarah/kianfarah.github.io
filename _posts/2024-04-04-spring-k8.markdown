@@ -1,0 +1,348 @@
+---
+layout: post
+title:  "Building and Deploying Java Microservices with Spring Boot, Docker, and Kubernetes"
+date:   2024-04-04 
+categories: spring boot, microservices
+---
+
+
+### TL:DR 🚀 
+In this guide, you'll learn to build and deploy Java microservices using Spring Boot, Docker, and Kubernetes. We'll start by setting up a Spring Boot application, then containerize it with Docker, and finally deploy it on a Kubernetes cluster. This tutorial aims to help you create a scalable, cloud-native architecture, perfect for teams looking to modernize their deployment processes and gain practical experience with these powerful technologies. Follow along to enhance your microservices development and deployment skills.
+
+
+## Introduction
+
+Microservices architecture divides an application into small, independent services that communicate over a network.
+This approach offers several advantages, including easier scalability, improved fault isolation,
+and the ability to use different technologies for different services. In this guide, we'll build a
+Java microservice cloud-native application using Spring Boot, containerize it with Docker, and deploy it on a Kubernetes cluster. We will cover the entire process step-by-step,
+ensuring you can replicate and extend from it for your own use case.
+
+## Prerequisites
+
+- Java Development Kit (JDK) installed
+- Basic knowledge of Spring Boot
+- Docker installed
+- A Kubernetes cluster (minikube or a cloud provider like OpenShift)
+
+## Step 1: Setting Up the Spring Boot Application
+
+#### Create a Spring Boot Project
+
+1. Use [Spring Initializr](https://start.spring.io/) to create a new project.
+2. Select what dependencies you desire, for this example I'll choose `Spring Web`, `Spring Data JDBC`, and `H2 Database`.
+3. Download and extract the generated project.
+
+> 💡 If you're using IntelliJ Ultimate edition, you can do this inside your IDE.
+
+#### Define the Model
+
+Create a `Product` entity representing the business modal.
+
+```java
+package org.farah.app;
+
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table(name = "product")
+public class Product {
+
+    @Id
+    private Long id;
+    private String name;
+    private double price;
+
+    // getters and setters
+}
+
+
+```
+
+#### Create the Repository
+
+Create a `ProductRepository` interface for CRUD operations.
+
+```java
+import org.springframework.data.repository.ListCrudRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+interface ProductRepository extends ListCrudRepository<Product, Long> {
+}
+```
+
+#### Build the REST Controller
+
+Create a simple `ProductController` class to expose the REST endpoints.
+
+```java
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Repository;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/products")
+class ProductController {
+
+    private final ProductRepository repository;
+
+    public ProductController(ProductRepository repository) {
+        this.repository = repository;
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Product>> getAllProducts() {
+        return ResponseEntity.ok(repository.findAll());
+    }
+
+    @PostMapping
+    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+        var createdProduct = repository.save(product);
+        var uri = getLocation(createdProduct);
+
+        return ResponseEntity.created(uri).body(createdProduct);
+    }
+
+    private URI getLocation(Product product) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("api/v1/products/{id}")
+                .buildAndExpand(product.getId())
+                .toUri();
+    }
+}
+
+```
+
+#### Run the Application
+
+Use the following command to run the Spring Boot application:
+
+```bash
+mvn spring-boot:run
+```
+
+## Step 2: Containerizing the Application with Docker
+
+Docker is a platform that automates the deployment of applications within lightweight, portable containers.
+These containers include everything the application needs to run—code, runtime, libraries, and dependencies—ensuring consistency across different environments.
+By containerizing our Spring Boot application, we ensure it behaves the same on development, testing, and production machines, solving the "it works on my machine" problem.
+Docker's portability and efficiency make it an essential tool for modern development and deployment practices, enhancing scalability and maintainability.
+
+> 💡 Docker is a vast topic, and we can't cover it all in this post. I highly recommend going through [this post](https://www.marcobehler.com/guides/building-docker-images)
+> for a more in-depth understanding.
+
+Note: This guide assumes some basic understanding of Docker.
+
+#### Create a Dockerfile
+
+A `Dockerfile` is a text file that contains instructions on how to build a Docker image for your application.
+It specifies the base image, the application code, and the commands to run your application inside a container.
+Create a `Dockerfile` in the root of your project to define the container.
+
+```Dockerfile
+FROM openjdk:17-jdk-alpine
+VOLUME /tmp
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar","/app.jar"]
+```
+
+#### Build the Docker Image
+
+A Docker image is a lightweight, standalone, and executable software package that includes everything needed to run a piece of software,
+including the code, runtime, libraries, and settings. Build the Docker image for your Spring Boot application using the Dockerfile created:
+
+```bash
+mvn package
+docker build -t your-dockerhub-username/product-service .
+```
+
+#### Push the Docker Image to a Registry
+
+A container registry is a storage and content delivery system, holding named Docker images, available in different tagged versions.
+Push the built image to a container registry like Docker Hub so it can be pulled and run on other machines:
+
+```bash
+docker push your-dockerhub-username/product-service
+```
+
+## Step 3: Deploying on Kubernetes
+
+Kubernetes is an open-source platform designed for automating the deployment, scaling, and operation of application containers.
+It helps manage containerized applications across a cluster of machines, providing advanced features such as load balancing, scaling,
+and self-healing. Deploying our microservice on Kubernetes ensures high availability, scalability, and efficient resource utilization
+
+Note: This guide assumes some basic understanding of Kubernetes. For a more detailed introduction, you can refer to the Kubernetes [documentation](https://kubernetes.io/).
+
+### Create Kubernetes Deployment and Service YAML files
+
+Kubernetes uses YAML files to define the desired state of your application.
+These files describe how the application should be deployed and how it should be exposed to the outside world.
+
+#### Deployment YAML
+
+A Deployment in Kubernetes ensures that a specified number of pod replicas are running at any given time.
+This helps maintain the availability of your application by distributing it across multiple nodes.
+
+Create a `deployment.yaml` file:
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: product-service
+          image: your-dockerhub-username/product-service
+          ports:
+            - containerPort: 8080
+```
+
+#### Service YAML
+
+A Service in Kubernetes defines a logical set of pods and a policy by which to access them.
+Services enable your application to receive traffic, ensuring efficient distribution of requests and high availability.
+
+Create `service.yml` file to define the services:
+
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30007
+  selector:
+    app: product-service
+```
+
+#### Deploy to Kubernetes
+
+Apply the deployment and service configurations to your Kubernetes cluster.
+This will create the necessary pods, replicating your application across multiple nodes, and exposing it via a service.
+
+```bash
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+### Configuring Ingress
+
+Ingress in Kubernetes manages external access to services in a cluster, typically HTTP. Depending on your environment, the configuration steps can vary.
+
+#### For Minikube
+
+If you're using Minikube, you need to enable the ingress add-on to manage external access.
+
+Enable the Ingress Add-on:
+
+```bash
+minikube addons enable ingress
+```
+
+#### For Cloud Hosts
+
+If you're deploying to a cloud provider like `OpenShift`, you might need to create a `route.yaml` file to expose your application externally.
+
+Create a `route.yaml` file:
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: product-route
+spec:
+  to:
+    kind: Service
+    name: product-service
+  port:
+    targetPort: 8080
+```
+
+Apply the route configuration:
+
+```bash
+kubectl apply -f route.yaml
+```
+
+#### Create an Ingress Resource
+
+create an `ingres.yml` file to define the ingress resource, which routes external traffic to your service.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: product-ingress
+spec:
+  rules:
+    - host: product.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 80
+```
+
+#### Apply the Ingress Resource
+
+```bash
+kubectl apply -f ingress.yaml
+```
+
+#### Verify Deployment
+
+Check the status of the deployments and services to ensure everything is running correctly.
+
+```bash
+kubectl get deployments
+kubectl get services
+```
+
+### Update Hosts File
+
+Add `127.0.0.1 product.local` to your `/etc/hosts` file (on Linux/Mac) or `C:\Windows\System32\drivers\etc\hosts` (on Windows) to access the service using the custom hostname.
+
+### Access the Application
+
+Open your browser and navigate to http://product.local to access your deployed application.
+
+## Conclusion
+
+You've successfully built, containerized, and deployed a Java microservice with Spring Boot on Kubernetes.
+This setup provides a scalable, resilient, and cloud-native architecture for your applications.
+You can now extend this base to add more microservices, implement advanced features, and optimize performance.
+
+While these technologies offer significant benefits, they also come with some drawbacks. Kubernetes and Docker add complexity to your infrastructure,
+which can be overkill for smaller applications. For instance,
+a monolithic architecture might be more appropriate for simple applications or startups with limited resources, as it requires less operational overhead and is easier to manage.
+Additionally, the learning curve for Kubernetes can be steep, requiring significant time and effort to master.
+
+By following these steps, you will have a solid foundation for developing and deploying microservices in a cloud-native environment,
+leveraging the power of Kubernetes for orchestration and Docker for containerization.
+However, always evaluate your project's specific needs to determine if these technologies are the right fit.

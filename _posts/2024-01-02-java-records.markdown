@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Quick Intor About Java Records"
+title:  "Quick Intro About Java Records"
 date:   2024-01-02 12:27:06 +0100
 categories: java update
 ---
